@@ -1,0 +1,92 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum DatasourceType {
+  Matrix
+}
+
+enum DataType {
+  Employee
+}
+
+model Datasource {
+  id        Int            @id @default(autoincrement())
+  name      String
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  type      DatasourceType
+  data      DataType
+
+  Processing    Processing[]
+  MatrixProfile MatrixProfile[]
+
+  @@map("datasource")
+}
+
+enum ProcessingStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model Processing {
+  id                         Int                          @id @default(autoincrement())
+  name                       String
+  status                     ProcessingStatus             @default(QUEUED)
+  createdAt                  DateTime                     @default(now()) @map("created_at")
+  startedAt                  DateTime?                    @map("started_at")
+  completedAt                DateTime?                    @map("completed_at")
+  updatedAt                  DateTime                     @updatedAt @map("updated_at")
+  datasourceId               Int                          @map("datasource_id")
+  datasource                 Datasource                   @relation(fields: [datasourceId], references: [id])
+  MatrixProfileUpdateHistory MatrixProfileUpdateHistory[]
+
+  @@map("processing")
+}
+
+model MatrixProfile {
+  id                         Int                          @id @default(autoincrement())
+  employeeId                 String                       @map("employee_id")
+  firstName                  String                       @map("first_name")
+  lastName                   String                       @map("last_name")
+  email                      String                       @map("email")
+  phone                      String                       @map("phone")
+  createdAt                  DateTime                     @default(now()) @map("created_at")
+  updatedAt                  DateTime                     @updatedAt @map("updated_at")
+  datasourceId               Int                          @map("datasource_id")
+  datasource                 Datasource                   @relation(fields: [datasourceId], references: [id])
+  MatrixProfileUpdateHistory MatrixProfileUpdateHistory[]
+
+  @@unique([employeeId, datasourceId])
+  @@map("matrix_profile")
+}
+
+enum MatrixProfileUpdateType {
+  CREATED
+  UPDATED
+}
+
+model MatrixProfileUpdateHistory {
+  id              Int                     @id @default(autoincrement())
+  matrixProfileId Int                     @map("matrix_profile_id")
+  matrixProfile   MatrixProfile           @relation(fields: [matrixProfileId], references: [id])
+  type            MatrixProfileUpdateType
+  createdAt       DateTime                @default(now()) @map("created_at")
+  processingId    Int                     @map("processing_id")
+  processing      Processing              @relation(fields: [processingId], references: [id])
+
+  firstName String? @map("first_name")
+  lastName  String? @map("last_name")
+  email     String? @map("email")
+  phone     String? @map("phone")
+
+  @@map("matrix_profile_update_history")
+}
